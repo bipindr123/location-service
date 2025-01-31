@@ -17,6 +17,7 @@
       }
     },
     "android": {
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -28,7 +29,6 @@
         "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_LOCATION"
-        
       ]
     },
     "web": {
@@ -65,7 +65,8 @@
       },
       "eas": {
         "projectId": "ae9c4ed9-2328-4003-b714-c056bd1c4c46"
-      }
+      },
+      "expoConfig": {}
     },
     "owner": "bipindr111"
   }

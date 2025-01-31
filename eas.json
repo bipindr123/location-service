@@ -4,6 +4,13 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "release": {
+      "android": {
+        "debugable": true,
+        "buildType": "apk"
+      }
+    },
+    
     "development": {
       "developmentClient": true,
       "distribution": "internal"
@@ -13,6 +20,7 @@
     },
     "production": {
       "android": {
+        "debugable": true,
         "buildType": "app-bundle"
       },
       "autoIncrement": false
@@ -20,6 +28,7 @@
 
     "apk": {
       "android": {
+        "debugable": true,
         "gradleCommand": ":app:assembleRelease"
       }
     }

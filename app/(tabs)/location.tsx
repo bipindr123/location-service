@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Button, StyleSheet, PermissionsAndroid, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import * as Device from 'expo-device';
 
 const LOCATION_TASK_NAME = "BACKGROUND_LOCATION_TASK";
 
@@ -11,15 +12,64 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     return;
   }
 
+  console.log("hello");
+
   if (data) {
     const { locations } = data as any;
-    console.log("Received new locations:", locations);
+    if(Device.modelName === undefined || Device.deviceName === undefined) {
+      locations[0]["deviceId"] = "Unknown Device";
+    }
+    else
+    {
+    locations[0]["deviceId"] = Device.modelName + " " + Device.deviceName;
+    }
+    
+    console.error("Received new locations:", locations);
     // You can send locations to your server or process them as needed
+        // send post request to server with locations
+        try {
+          const fetchWithTimeout = (url, options, timeout = 5000) => {
+            return Promise.race([
+              fetch(url, options),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout')), timeout)
+              )
+            ]);
+          };
+
+          const response = await fetchWithTimeout('http://52.23.149.90:3005/ttntest', {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(locations),
+          });
+
+          const response2 = await fetchWithTimeout('https://webhook.site/92aeec6c-d3ee-4df8-bbd5-0224854e9e76', {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(locations),
+          });
+
+    
+          if (!response.ok) {
+          console.error('Failed to send location data to server:', response.statusText);
+          } else {
+          console.error('Location data sent to server:', locations);
+          }
+        } catch (error) {
+          console.error('Error sending location data to server:', error);
+        }
   }
 });
 
 const DisplayLocation = () => {
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [applogs, setApplogs] = useState<string | null>(null);
 
   const requestPermissions = async () => {
     // Request foreground location permissions
@@ -36,6 +86,7 @@ const DisplayLocation = () => {
       return false;
     }
   
+    setApplogs("Permissions granted");
     console.log("Permissions granted");
     return true;
   };
@@ -75,12 +126,14 @@ const DisplayLocation = () => {
             notificationColor: "#FFFFFF", // iOS & Android notification color
           },
         });
-
+        setApplogs("Background location task started!");
         console.log("Background location task started!");
       } catch (e) {
+        setApplogs("Error starting location updates: " + e);
         console.error("Error starting location updates:", e);
       }
     } else {
+      setApplogs("Location task is already running.");
       console.log("Location task is already running.");
     }
   };
@@ -88,7 +141,7 @@ const DisplayLocation = () => {
 
   useEffect(() => {
     (async () => {
-        getCurrentLocation();
+        // getCurrentLocation();
         // startBackgroundLocationTracking();
     })();
   }, []);
@@ -99,6 +152,14 @@ const DisplayLocation = () => {
       {location ? (
         <Text style={styles.location}>
           Latitude: {location.latitude}, Longitude: {location.longitude}
+        </Text>
+      ) : (
+        <Text style={styles.info}>Fetching location...</Text>
+      )}
+
+      {applogs ? (
+        <Text style={styles.location}>
+          {applogs}
         </Text>
       ) : (
         <Text style={styles.info}>Fetching location...</Text>
