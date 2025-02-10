@@ -3,8 +3,25 @@ import { View, Text, Button, StyleSheet, PermissionsAndroid, Platform } from 're
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 
 const LOCATION_TASK_NAME = "BACKGROUND_LOCATION_TASK";
+
+
+
+async function startForegroundService() {
+  await Notifications.setNotificationChannelAsync('background-service', {
+    name: 'Background Service',
+    importance: Notifications.AndroidImportance.LOW,
+  });
+
+  await Notifications.startForegroundServiceAsync('task-id', {
+    channelId: 'background-service',
+    title: 'App Running',
+    body: 'App is running in background',
+    sticky: true,
+  });
+}
 
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
   if (error) {
@@ -17,11 +34,11 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
   if (data) {
     const { locations } = data as any;
     if(Device.modelName === undefined || Device.deviceName === undefined) {
-      locations[0]["deviceId"] = "Unknown Device";
+      locations[locations.length - 1]["deviceId"] = "Unknown Device";
     }
     else
     {
-    locations[0]["deviceId"] = Device.modelName + " " + Device.deviceName;
+    locations[locations.length - 1]["deviceId"] = Device.modelName + " " + Device.deviceName;
     }
     
     console.error("Received new locations:", locations);
@@ -43,18 +60,8 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
               'Accept': 'application/json',
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(locations),
+            body: JSON.stringify(locations[locations.length - 1]),
           });
-
-          const response2 = await fetchWithTimeout('https://webhook.site/92aeec6c-d3ee-4df8-bbd5-0224854e9e76', {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(locations),
-          });
-
     
           if (!response.ok) {
           console.error('Failed to send location data to server:', response.statusText);
@@ -107,6 +114,7 @@ const DisplayLocation = () => {
       latitude: location.coords.latitude,
       longitude: location.coords.longitude,
     });
+    startForegroundService();
     startBackgroundLocationTracking();
   };
 
@@ -117,8 +125,9 @@ const DisplayLocation = () => {
         // Start background location updates
         await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
           accuracy: Location.Accuracy.BestForNavigation,
-          distanceInterval: 10, // Fetch location every 10 meters
-          timeInterval: 10000, // Fetch location every 10 seconds
+          mayShowUserSettingsDialog: true,
+          distanceInterval: 1, // Fetch location every 1 meters
+          timeInterval: 1000, // Fetch location every 1 seconds
           // showsBackgroundLocationIndicator: true, // Show indicator on iOS
           foregroundService: {
             notificationTitle: "Tracking Your Location",
